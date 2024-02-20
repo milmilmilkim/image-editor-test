@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <textarea id="copy"></textarea>
+    <button class="txt-add">텍스트 추가</button> <br />
+
+    <textarea style="width: 500px; height: 100px" id="console-textarea"></textarea>
+
+    <br />
+    <button id="rand-img-btn">랜덤 이미지 불러오기</button>
+
+    <button id="test-btn">TEST(echo hello world!)</button>
+
+    <label for="save-type-select">저장 확장자</label>
+    <select id="save-type-select">
+      <option label="png" value="png" />
+      <option label="psd" value="psd" />
+    </select>
+    <button id="save-btn">저장 (파일 > 저장과 동일)</button>
+
+    <hr />
+    <iframe id="pp" width="1300" height="600"></iframe>
+
+    <h3>저장된 이미지</h3>
+    <div class="wrapper"></div>
+
+    <script>
+      let saveType = 'png';
+      let wnd;
+
+      const initPP = (img) => {
+        const pFrame = document.getElementById('pp');
+        let frameSrc = 'https://www.photopea.com#';
+        const options = {
+          files: [img],
+          environment: {
+            theme: 0, // 테마 (0,1,2)
+            lang: 'ko', // 언어
+            vmode: 1, // iew mode. 0: regular, 1: panels are collapsed, 2: hide all panels
+            intro: false, // 열려있는 프로젝트가 없을 때 인트로 화면 표시 여부
+            eparams: {
+              guides: false, // 가이드 활성화 여부
+              grid: false, // 그리드 활성화 여부
+              gsize: 8,
+              paths: true,
+              pgrid: true,
+            },
+            customIO: {
+              // open: 'app.echoToOE("Open");',
+              save: 'app.echoToOE("Save");',
+            }, //가능한 것-  "new", "open", "openFromURL", "takePic", "showTemplates", "save", "saveAsPSD", "publishOnline", "exportLayers"
+            localsave: true, // "Save as PSD", "Save for Web" and "Publish Online" 활성화 여부
+            //   autosave: 30, // x초마다 File - Save
+            showtools: [0, 47, 61], // ID에 해당되는 툴만 보여줌
+            menus: [
+              // 파일
+              [
+                1, // 새로 만들기
+                1, // 열기
+                0, // 열기 및 배치
+                0, // 열기 (더보기)
+                0, // 공유
+                1, // 저장
+                1, // PSD로 저장
+                0, // 저장 (더보기)
+                1, // 내보내기 형식
+              ],
+
+              // 편집
+              1,
+              // 이미지
+              1,
+              // 레이어
+              1,
+              //선택
+              1,
+
+              // 필터
+              1,
+              //보기
+              0,
+              //창
+              0,
+              //더 보기
+              0,
+            ], // 메뉴 뭘 보여줄지, 배열 각 요소 - 0: 숨기기, 1: 표준 콘텐츠가 포함된 항목 표시 또는 하위 항목에 대한 플래그 배열(재귀적으로 작동)
+            panels: [0, 2], // ID에 해당되는 패널만 보임
+            // 0: HISTORY, 1: SWATCHES, 2: LAYERS, 3: INFO, 4: HISTOGRAM, 5: PROPERTIES, 6: CSS, 7: BRUSH, 8: LAYERCOMPS, 9: CHARACTER, 10: PARAGRAPH, 11: 액션, 12: 네비게이터, 13: 컬러, 14: TPRESET, 15: GUIDEGUY, 16: 채널, 17: 경로, 18: 조정, 19: 글리프, 20: 메모리, 21: 스타일, 22: 메모
+            phrases: [[1, 0], '열기(custom)', [1, 2], '저장(custom)', [1, 3], 'PSD로 저장(custom)', [1, 8], '로컬에 저장하기(custom)'], // 내부 문구를 바꿈. [ ID1, W1, ID2, W2, ... ]
+            // Some useful IDs: [1,2]: Save (File menu), [2,0]: Step Forward, [2,1]: Step Backward.
+
+            //  topt  : {  "t0": ...,  "t1": ...,  ... }, // 툴 옵션
+            // tmnu  : {  "t0": ...,  "t1": ...,  ... }, // 툴 메뉴 최상위 지정
+
+            //   icons: { "tools/crop": "https://www.me.com/img/crop.png" }, // 아이콘 변경
+            plugins: [], // 플러그인
+          },
+          //   script:
+          //     "var newDocument = app.documents.add(1000, 1000, 72, 'hello world', NewDocumentMode.RGB, DocumentFill.WHITE);",
+        };
+
+        frameSrc += encodeURIComponent(JSON.stringify(options));
+        pFrame.setAttribute('src', frameSrc);
+        wnd = pFrame.contentWindow;
+      };
+
+      initPP('https://source.unsplash.com/random');
+
+      const postMessageToPP = (msg) => {
+        wnd.postMessage(msg, 'https://www.photopea.com');
+      };
+
+      const savePP = (type) => {
+        postMessageToPP(`app.activeDocument.saveToOE("${type}")`);
+      };
+
+      window.addEventListener('message', function (e) {
+        if (e.origin !== 'https://www.photopea.com') return;
+        const { data } = e;
+
+        document.querySelector('#console-textarea').value += data + '\n';
+
+        if (data instanceof ArrayBuffer) {
+          if (saveType === 'psd') {
+            const blob = new Blob([data], {
+              type: 'application/octet-stream',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'example.psd';
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+            a.remove();
+            return;
+          }
+          const blob = new Blob([data], { type: 'image/png' });
+          const url = URL.createObjectURL(blob);
+
+          const wrapper = document.querySelector('.wrapper');
+          const savedImage = document.createElement('img');
+          savedImage.setAttribute('src', url);
+          wrapper.appendChild(savedImage);
+
+          return;
+        }
+
+        switch (data) {
+          case 'Save':
+            savePP(saveType);
+
+          default:
+            break;
+        }
+      });
+
+      const textArea = document.querySelector('#copy');
+      const textAddBtn = document.querySelector('.txt-add');
+      textAddBtn.addEventListener('click', () => {
+        postMessageToPP(
+          `var docRef = app.activeDocument; 
+           var textLayer = docRef.artLayers.add();
+           textLayer.kind = LayerKind.TEXT;
+           textLayer.textItem.contents = "${textArea.value}";
+           textLayer.textItem.position = [100, 100];
+           textLayer.textItem.size = 24;
+           textLayer.textItem.font = "NotoSansKr-Regular";
+           `
+        );
+      });
+
+      const saveTypeSelect = document.querySelector('#save-type-select');
+
+      saveTypeSelect.addEventListener('change', (e) => {
+        saveType = e.target.value;
+      });
+
+      document.querySelector('#rand-img-btn').addEventListener('click', (e) => {
+        postMessageToPP("app.open('https://source.unsplash.com/random', null, true);");
+      });
+
+      document.querySelector('#test-btn').addEventListener('click', (e) => {
+        postMessageToPP("app.echoToOE('hello world!');");
+      });
+
+      document.querySelector('#save-btn').addEventListener('click', (e) => {
+        savePP(saveType);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  </head>
+  <body>
+    <textarea style="width: 500px; height: 100px" id="copy-textarea"></textarea>
+    <button id="text-btn">텍스트 추가</button>
+    <button id="rand-img-btn">랜덤 이미지 넣기</button>
+
+    <canvas style="border: solid 1px #000" id="c" width="1000" height="1000"></canvas>
+
+    <script>
+      class FabricCanvas {
+        constructor(targetElement) {
+          fabric.Textbox.prototype.insertNewStyleBlock = function () {};
+          fabric.Object.prototype.borderColor = '#5771FF';
+          fabric.Object.prototype.cornerColor = '#fff';
+          fabric.Object.prototype.cornerStrokeColor = '#5771FF';
+          fabric.Object.prototype.transparentCorners = false;
+          fabric.Object.prototype.cornerSize = 8;
+          fabric.Textbox.prototype.setControlsVisibility({
+            mt: false,
+            mb: false,
+          });
+
+          this.canvas = new fabric.Canvas(targetElement, {
+            fireRightClick: true,
+            fireMiddleClick: true,
+            stopContextMenu: true,
+          });
+        }
+
+        addText(text) {
+          const fabricText = new fabric.Textbox(text, {
+            editable: true,
+            dirty: true,
+          });
+
+          fabricText.setControlsVisibility({
+            mt: false, // 중앙 상단 컨트롤 숨김
+            mb: false, // 중앙 하단 컨트롤 숨김
+          });
+
+          this.canvas?.add(fabricText);
+
+          this.canvas?.setActiveObject(fabricText);
+        }
+
+        addImg(url) {
+          if (!url) return;
+          fabric.Image.fromURL(
+            url,
+            (img) => {
+              img.set({
+                left: 0,
+                top: 0,
+                angle: 0,
+              });
+
+              this.canvas.add(img);
+            },
+            { crossOrigin: 'anonymous' }
+          );
+        }
+
+        deleteActiveObject() {
+          const activeObjects = this.canvas?.getActiveObjects();
+
+          if (activeObjects && activeObjects.length > 0) {
+            activeObjects.forEach((object) => {
+              this.canvas?.remove(object);
+            });
+
+            this.canvas?.discardActiveObject();
+            this.canvas?.renderAll();
+          }
+        }
+      }
+      const fabricCavans = new FabricCanvas(document.querySelector('#c'));
+      const textArea = document.querySelector('#copy-textarea');
+
+      document.querySelector('#text-btn').addEventListener('click', () => {
+        fabricCavans.addText(textArea.value);
+        textArea.value = '';
+      });
+
+      document.querySelector('#rand-img-btn').addEventListener('click', () => {
+        fabricCavans.addImg('https://source.unsplash.com/random');
+      });
+
+      const handleKeyDown = (e) => {
+        if (document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            fabricCavans?.deleteActiveObject();
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+    </script>
+  </body>
+</html>
